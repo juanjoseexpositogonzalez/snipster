@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import StrEnum
-from typing import Optional
+from typing import Any, Optional
 
 from decouple import config
 from sqlmodel import Field, SQLModel, create_engine
@@ -23,7 +23,7 @@ class Language(StrEnum):
     CSS = "css"
 
 
-engine = create_engine(f"sqlite:///{config("DATABASE_NAME")}", echo=False)
+engine = create_engine(f"sqlite:///{config('DATABASE_NAME')}", echo=False)
 
 
 class Snippet(SQLModel, table=True):
@@ -38,7 +38,7 @@ class Snippet(SQLModel, table=True):
     )  # Use a string for simplicity, could be datetime
     updated_at: Optional[datetime] = Field(default=datetime.now())
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         if self.created_at is None:
             self.created_at = datetime.now()
@@ -46,7 +46,7 @@ class Snippet(SQLModel, table=True):
             self.updated_at = datetime.now()
 
     @classmethod
-    def create(cls, **kwargs) -> "Snippet":
+    def create(cls, **kwargs: Any) -> "Snippet":
         """Create a new Snippet instance with the current timestamp for created_at and updated_at.
         Args:
             **kwargs: Keyword arguments to initialize the Snippet instance.
@@ -58,6 +58,37 @@ class Snippet(SQLModel, table=True):
         snippet.updated_at = datetime.now()
         snippet.created_at = datetime.now()
         return snippet
+
+    @classmethod
+    def create_snippet(
+        cls,
+        title: str,
+        code: str,
+        language: Language,
+        description: Optional[str] = None,
+        tags: Optional[str] = None,
+    ) -> "Snippet":
+        """Create a new Snippet instance with the provided parameters.
+
+        Args:
+            title (str): The title of the snippet.
+            code (str): The code content of the snippet.
+            language (Language): The programming language of the snippet.
+            description (Optional[str]): A description of the snippet.
+            tags (Optional[str]): Tags associated with the snippet.
+
+        Returns:
+            Snippet: A new Snippet instance.
+        """
+        if len(title) < 3:
+            raise ValueError("Title must be at least 3 characters long.")
+        return cls.create(
+            title=title,
+            code=code,
+            language=language,
+            description=description,
+            tags=tags,
+        )
 
 
 if __name__ == "__main__":
