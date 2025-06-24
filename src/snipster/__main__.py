@@ -1,6 +1,6 @@
-def main() -> None:
+def main() -> None:  # pragma: no cover
     print("Hello from snipster!")
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

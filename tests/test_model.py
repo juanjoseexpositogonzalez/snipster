@@ -1,3 +1,5 @@
+import datetime
+
 import pytest
 from sqlmodel import Session, SQLModel, create_engine
 
@@ -20,6 +22,8 @@ def test_create_snippet():
         language=Language.PYTHON,
         description="A simple hello world snippet",
         tags="test,example",
+        created_at=None,
+        updated_at=None,
     )
 
     with Session(engine) as session:
@@ -32,9 +36,56 @@ def test_create_snippet():
         assert snippet.language == Language.PYTHON
         assert snippet.description == "A simple hello world snippet"
         assert snippet.tags == "test,example"
+        assert isinstance(snippet.created_at, datetime.datetime)
+        assert isinstance(snippet.updated_at, datetime.datetime)
+        assert abs((snippet.updated_at - snippet.created_at).total_seconds()) < 1
+
+
+def test_snippet_assigns_now_when_created_at_is_none(mocker):  # type: ignore
+    mock_now = mocker.patch("src.snipster.models.datetime")
+    mock_now.now.return_value = datetime.datetime(2024, 1, 1)
+
+    snippet = Snippet(
+        title="test",
+        code="print('hi')",
+        language=Language.PYTHON,
+        created_at=None,
+        updated_at=None,
+    )
+
+    assert snippet.created_at == datetime.datetime(2024, 1, 1)
+    assert snippet.updated_at == datetime.datetime(2024, 1, 1)
+
+
+def test_create_snippet_with_short_title_raises_value_error():
+    with pytest.raises(ValueError) as excinfo:
+        Snippet.create_snippet(
+            title="Hi",  # menos de 3 caracteres
+            code="print('Hello')",
+            language=Language.PYTHON,
+        )
+
+    assert str(excinfo.value) == "Title must be at least 3 characters long."
+
+
+def test_create_snippet_valid_title():
+    snippet = Snippet.create_snippet(
+        title="Valid Title",
+        code="print('Hello')",
+        language=Language.PYTHON,
+        description="Demo snippet",
+        tags="example, test",
+    )
+
+    assert snippet.title == "Valid Title"
+    assert snippet.code == "print('Hello')"
+    assert snippet.language == Language.PYTHON
+    assert snippet.description == "Demo snippet"
+    assert snippet.tags == "example, test"
 
 
 def test_create_snippet_with_cls_method():
+    """Test creating a snippet using the class method."""
     snippet = {
         "title": "Test Snippet with Class Method",
         "code": "print('Hello, Class Method!')",

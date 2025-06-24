@@ -8,6 +8,7 @@ authors = [
 ]
 requires-python = ">=3.13"
 dependencies = [
+    "pytest-mock>=3.14.1",
     "python-decouple>=3.8",
     "ruff>=0.11.13",
     "sqlmodel>=0.0.24",
@@ -22,5 +23,17 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
+    "poethepoet>=0.35.0",
     "pytest-cov>=6.2.1",
+    "ty>=0.0.1a11",
 ]
+
+
+[tool.poe.tasks]
+test         = "pytest -vv --cov=src --cov-report=term-missing --cov-report=html"
+lint         = "ruff check src"
+format       = "ruff format src"
+format-check = "ruff check src --fix"
+type-check   = "ruff typecheck src"
+run          = "snipster"
+tc           = "ty check ."

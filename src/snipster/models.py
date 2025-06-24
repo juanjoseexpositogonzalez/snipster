@@ -37,6 +37,7 @@ class Snippet(SQLModel, table=True):
         default=datetime.now()
     )  # Use a string for simplicity, could be datetime
     updated_at: Optional[datetime] = Field(default=datetime.now())
+    favorite: bool = Field(default=False)
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -91,6 +92,7 @@ class Snippet(SQLModel, table=True):
         )
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
+    # Create the database and tables
     SQLModel.metadata.create_all(engine)
     print("Database and tables created successfully.")
