@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import StrEnum
-from typing import Any, Optional
+from typing import Any, Optional, Self, Sequence
 
 from decouple import config
 from sqlmodel import Field, SQLModel, create_engine
@@ -46,8 +46,17 @@ class Snippet(SQLModel, table=True):
         if self.updated_at is None:
             self.updated_at = datetime.now()
 
+    def __str__(self) -> str:
+        """Return a string representation of the Snippet instance."""
+        return f"Snippet(id={self.id}, title={self.title}, language={self.language}, created_at={self.created_at})"
+
+    @property
+    def tag_list(self) -> Sequence[str]:
+        """Return a list of tags associated with the snippet."""
+        return self.tags.split(",") if self.tags else []  # type: ignore
+
     @classmethod
-    def create(cls, **kwargs: Any) -> "Snippet":
+    def create(cls, **kwargs: Any) -> Self:
         """Create a new Snippet instance with the current timestamp for created_at and updated_at.
         Args:
             **kwargs: Keyword arguments to initialize the Snippet instance.
