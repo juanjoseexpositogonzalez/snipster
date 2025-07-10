@@ -18,7 +18,7 @@ dependencies = [
 ]
 
 [project.scripts]
-snipster = "snipster:main"
+snipster = "snipster.cli:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -39,6 +39,9 @@ lint         = "ruff check src"
 format       = "ruff format src"
 format-check = "ruff check src --fix"
 type-check   = "ruff typecheck src"
-run          = "snipster"
+run          = "python -m snipster"  # or "uv run src/snipster/cli.py"
 cli          = "uv run src/snipster/cli.py"
 tc           = "ty check ."
+
+[tool.setuptools]
+package-dir = {"" = "src"}

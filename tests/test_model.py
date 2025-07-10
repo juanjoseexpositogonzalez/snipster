@@ -29,7 +29,6 @@ def test_create_snippet():
     with Session(engine) as session:
         session.add(snippet)
         session.commit()
-        session.refresh(snippet)
 
         assert snippet.id is not None
         assert snippet.title == "Test Snippet"
@@ -98,7 +97,6 @@ def test_create_snippet_with_cls_method():
     with Session(engine) as session:
         session.add(snippet_instance)
         session.commit()
-        session.refresh(snippet_instance)
 
         assert snippet_instance.id is not None
         assert snippet_instance.title == "Test Snippet with Class Method"

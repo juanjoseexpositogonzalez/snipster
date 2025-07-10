@@ -1,6 +1,3 @@
-def main() -> None:  # pragma: no cover
-    print("Hello from snipster!")
+from .cli import app  # pragma: no cover
 
-
-if __name__ == "__main__":  # pragma: no cover
-    main()
+app()  # pragma: no cover

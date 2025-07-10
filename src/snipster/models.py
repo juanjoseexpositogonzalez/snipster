@@ -23,10 +23,9 @@ class Language(StrEnum):
     CSS = "css"
 
 
-engine = create_engine(f"sqlite:///{config('DATABASE_NAME')}", echo=False)
-
-
 class Snippet(SQLModel, table=True):
+    __table_args__ = {"extend_existing": True}
+
     id: Optional[int] = Field(default=None, primary_key=True)
     title: str
     code: str
@@ -102,6 +101,8 @@ class Snippet(SQLModel, table=True):
 
 
 if __name__ == "__main__":  # pragma: no cover
-    # Create the database and tables
+    # Create the database and tablesprint("Database and tables created successfully.")
+    database_url = config("DATABASE_URL", default="sqlite:///snippets.db")
+    engine = create_engine(database_url, echo=True)  # type: ignore
     SQLModel.metadata.create_all(engine)
     print("Database and tables created successfully.")

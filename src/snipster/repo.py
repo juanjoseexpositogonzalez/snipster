@@ -109,7 +109,7 @@ class SnippetRepository(ABC):  # pragma: no cover
             snippet.tags = ""
 
         existing = list(snippet.tag_list)
-        existing.extend(tags)
+        existing.extend(list(tags))
         existing = list(set(existing))  # Remove duplicates
 
         if remove:
@@ -208,10 +208,10 @@ class DBSnippetRepo(SnippetRepository):
     def add(self, snippet: Snippet) -> None:
         self.session.add(snippet)
         self.session.commit()
-        self.session.refresh(snippet)
 
     def list(self) -> Sequence[Snippet]:
         """List all snippets in the database."""
+
         return self.session.exec(select(Snippet)).all()
 
     def get(self, snippet_id: int) -> Snippet:
@@ -267,13 +267,13 @@ class DBSnippetRepo(SnippetRepository):
             SnippetNotFoundError: If the snippet with the given ID does not exist.
         """
         statement = select(Snippet).where(Snippet.id == snippet_id)
+
         snippet = self.session.exec(statement).first()
         if snippet is None:
             raise SnippetNotFoundError(f"Snippet with ID {snippet_id} not found.")
         snippet.favorite = not snippet.favorite  # type: ignore
         self.session.add(snippet)
         self.session.commit()
-        self.session.refresh(snippet)
 
     def tag(
         self, snippet_id: int, /, *tags: str, remove: bool = False, sort: bool = True
@@ -290,13 +290,13 @@ class DBSnippetRepo(SnippetRepository):
             SnippetNotFoundError: If the snippet with the given ID does not exist.
         """
         statement = select(Snippet).where(Snippet.id == snippet_id)
+
         snippet = self.session.exec(statement).first()
         if snippet is None:
             raise SnippetNotFoundError(f"Snippet with ID {snippet_id} not found.")
         snippet.tags = self._update_tags(snippet, tags, remove=remove, sort=sort)
         self.session.add(snippet)
         self.session.commit()
-        self.session.refresh(snippet)
 
 
 class DateTimeEncoder(json.JSONEncoder):
