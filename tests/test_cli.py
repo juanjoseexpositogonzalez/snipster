@@ -1,7 +1,10 @@
 from pathlib import Path
 from typing import Any
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+from sqlmodel import SQLModel, create_engine
+from sqlmodel.pool import StaticPool
 from typer.testing import CliRunner
 
 from snipster.cli import app
@@ -15,7 +18,20 @@ def db_setup(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     db_path = tmp_path / "test.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
 
-    yield
+    engine = create_engine(
+        f"sqlite:///{db_path}",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,  # Importante para SQLite en tests
+        echo=False,
+    )
+
+    # Crear las tablas
+    SQLModel.metadata.create_all(engine)
+
+    yield engine
+
+    # Cleanup: cerrar todas las conexiones
+    engine.dispose()
 
 
 @pytest.fixture()
@@ -86,6 +102,7 @@ def test_delete_snippet(add_snippet: Any):
 
 def test_search_snippet(add_snippet: Any):
     """Test searching for snippets"""
+    assert add_snippet.exit_code == 0
     result = runner.invoke(
         app,
         [
@@ -172,3 +189,72 @@ def test_delete_snippet_not_found():
     result = runner.invoke(app, ["delete", "999"])
     assert result.exit_code == 0
     assert "Snippet with id 999 not found" in result.output
+
+
+def test_run_code_success(add_snippet: Any):
+    """Test running code"""
+    # Primero agregar el snippet
+    assert add_snippet.exit_code == 0
+    all_snippets = runner.invoke(app, ["list"])
+    assert all_snippets.exit_code == 0
+
+    # Ejecutar el código del snippet
+    result = runner.invoke(
+        app,
+        ["run", "1", "--version", "3.10.0"],  # type: ignore
+    )
+
+    assert result.exit_code == 0
+    assert "hello" in result.output
+
+
+def test_run_code_not_found():
+    """Test running code for a non-existent snippet"""
+    result = runner.invoke(app, ["run", "999"])
+    assert result.exit_code == 0
+    assert "Snippet with id 999 not found" in result.output
+
+
+def test_run_code_raises_httperror(add_snippet: Any):
+    """Test running code raises HTTPError"""
+    # Primero agregar el snippet
+    assert add_snippet.exit_code == 0
+
+    # Mockear httpx.AsyncClient para que devuelva un status code != 200
+    with patch("httpx.AsyncClient") as mock_client:
+        mock_response = AsyncMock()
+        mock_response.status_code = 500
+        mock_client.return_value.__aenter__.return_value.post.return_value = (
+            mock_response
+        )
+
+        # Ahora sí debería fallar
+        result = runner.invoke(app, ["run", "1", "--version", "latest"])
+        assert result.exit_code == 1  # Asumiendo que manejas el error apropiadamente
+
+
+@patch("snipster.cli.httpx.AsyncClient")  # Reemplaza 'tu_modulo' con el nombre real
+def test_run_code_displays_stderr(mock_client_class: Any, add_snippet: Any):
+    """Test that stderr is displayed when present"""
+    assert add_snippet.exit_code == 0
+
+    # Mock de la respuesta
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "run": {"stdout": "", "stderr": "Error: variable not defined", "output": ""}
+    }
+
+    # Configurar el mock
+    mock_client = AsyncMock()
+    mock_client.post.return_value = mock_response
+    mock_client_class.return_value.__aenter__.return_value = mock_client
+
+    result = runner.invoke(app, ["run", "1"])
+
+    print(f"Result output: '{result.output}'")  # Debug
+    print(f"Exit code: {result.exit_code}")  # Debug
+
+    assert result.exit_code == 0
+    assert "STDERR:" in result.output
+    assert "Error: variable not defined" in result.output

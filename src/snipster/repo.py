@@ -205,9 +205,23 @@ class DBSnippetRepo(SnippetRepository):
         """Initialize the repository with an optional SQLModel session."""
         self.session = session
 
+    def __enter__(self):  # pragma: no cover
+        """Enter the context manager."""
+        return self
+
+    def __exit__(
+        self, exc_type: str | None, exc_val: int, exc_tb: str | None
+    ) -> None:  # pragma: no cover
+        self.session.close()
+
     def add(self, snippet: Snippet) -> None:
-        self.session.add(snippet)
-        self.session.commit()
+        """Add a new snippet to the database."""
+        try:
+            self.session.add(snippet)
+            self.session.commit()
+        except Exception as e:
+            self.session.rollback()
+            raise ValueError(f"Failed to add snippet: {e}") from e
 
     def list(self) -> Sequence[Snippet]:
         """List all snippets in the database."""
@@ -216,7 +230,6 @@ class DBSnippetRepo(SnippetRepository):
 
     def get(self, snippet_id: int) -> Snippet:
         """Get a snippet by its ID."""
-
         snippet = self.session.get(Snippet, snippet_id)
         if snippet is None:
             raise SnippetNotFoundError(f"Snippet with ID {snippet_id} not found.")
@@ -242,6 +255,7 @@ class DBSnippetRepo(SnippetRepository):
             Sequence[Snippet]: A sequence of snippets matching the search criteria.
         """
         snippets: Sequence[Snippet] = []
+
         statement = select(Snippet)
         results = self.session.exec(statement)
         for snippet in results:

@@ -1,3 +1,7 @@
+import asyncio
+from typing import Any, Dict, Final
+
+import httpx
 import typer
 from decouple import config
 from rich.console import Console, Group
@@ -12,6 +16,7 @@ from snipster.repo import DBSnippetRepo
 
 app = typer.Typer()
 console = Console()
+PISTON_API: Final[str] = "https://emkc.org/api/v2/piston/execute"
 
 
 @app.callback()
@@ -34,7 +39,7 @@ def add(
     ctx: typer.Context,
     title: str = typer.Argument(...),
     code: str = typer.Argument(...),
-    language: Language = typer.Option(Language.PYTHON, "--language", "--lang"),
+    language: Language = typer.Option(Language.PYTHON, "--language", "--lang", "-l"),
     description: str = typer.Option(
         None, "--description", "-desc", help="Snippet description"
     ),
@@ -56,10 +61,6 @@ def list_snippets(ctx: typer.Context):
     if not snippets:
         console.print("[bold yellow]No snippets found.[/bold yellow]")
     for snippet in snippets:
-        # typer.echo(f"{snippet.id}: {snippet.title} ({snippet.language})")
-        # console.print(
-        #     f"[bold blue]{snippet.id}[/bold blue]: {snippet.title} [dim]({snippet.language})[/dim]"
-        # )
         description_text = Text(
             snippet.description if snippet.description else "No description",
             style="gray50",
@@ -161,3 +162,70 @@ def tag(
         )
     except SnippetNotFoundError:
         console.print(f"[bold red]Snippet {snippet_id} not found[/bold red].")
+
+
+@app.command(name="run")
+def run_code(
+    ctx: typer.Context,
+    snippet_id: int = typer.Argument(..., help="Snippet ID to run"),
+    version: str = typer.Option(
+        "latest", "--version", "-v", help="Language version to use"
+    ),
+) -> Dict[str, Any]:
+    """
+    Run code in a specific language using Piston API.
+    """
+    try:
+        result = asyncio.run(_run_code_async(ctx, snippet_id, version))
+    except httpx.HTTPError as e:
+        console.print(f"[bold red]HTTPError: {e}[/bold red]")
+        raise typer.Exit(code=1)
+
+    if result:
+        console.print("[bold green]Execution completed![/bold green]")
+
+        if result["stdout"]:
+            console.print("[bold blue]STDOUT:[/bold blue]")
+            console.print(result["stdout"])
+
+        if result["stderr"]:
+            console.print("[bold red]STDERR:[/bold red]")
+            console.print(result["stderr"])
+
+        if result["output"]:
+            console.print("[bold yellow]OUTPUT:[/bold yellow]")
+            console.print(result["output"])
+
+    return result
+
+
+async def _run_code_async(
+    ctx: typer.Context,
+    snippet_id: int,
+    version: str = "3.10.0",  # Default to latest version
+) -> Dict[str, Any]:
+    repo: DBSnippetRepo = ctx.obj
+    try:
+        snippet = repo.get(snippet_id)
+    except SnippetNotFoundError:
+        console.print(f"[bold red]Snippet with id {snippet_id} not found[/bold red].")
+        return {}
+
+    payload: Dict[str, Any] = {
+        "language": snippet.language.value,
+        "version": version,
+        "files": [{"content": snippet.code}],
+    }
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(PISTON_API, json=payload)
+        if response.status_code != 200:
+            raise httpx.HTTPError("Code execution failed")
+
+        result = response.json()
+
+        stdout = result.get("run", {}).get("stdout", "")
+        stderr = result.get("run", {}).get("stderr", "")
+        output = result.get("run", {}).get("output", "")
+
+        return {"stdout": stdout, "stderr": stderr, "output": output}
