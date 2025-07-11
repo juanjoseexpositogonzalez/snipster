@@ -1,3 +1,5 @@
+"""# snipster/models.py"""
+
 from datetime import datetime
 from enum import StrEnum
 from typing import Any, Optional, Self, Sequence
@@ -7,6 +9,8 @@ from sqlmodel import Field, SQLModel, create_engine
 
 
 class Language(StrEnum):
+    """List of programming languages supported by the Snippet model."""
+
     PYTHON = "python"
     JAVASCRIPT = "javascript"
     JAVA = "java"
@@ -24,6 +28,8 @@ class Language(StrEnum):
 
 
 class Snippet(SQLModel, table=True):
+    """Model representing a code snippet."""
+
     __table_args__ = {"extend_existing": True}
 
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -31,12 +37,12 @@ class Snippet(SQLModel, table=True):
     code: str
     description: Optional[str] = Field(default=None)
     language: Language
-    tags: Optional[str] = Field(default=None)  # Using a list to store tags
+    tags: Optional[str] = Field(default=None)  # Using a string to store tags
+    favorite: bool = Field(default=False)
     created_at: Optional[datetime] = Field(
         default=datetime.now()
     )  # Use a string for simplicity, could be datetime
     updated_at: Optional[datetime] = Field(default=datetime.now())
-    favorite: bool = Field(default=False)
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -76,6 +82,7 @@ class Snippet(SQLModel, table=True):
         language: Language,
         description: Optional[str] = None,
         tags: Optional[str] = None,
+        favorite: bool = False,
     ) -> "Snippet":
         """Create a new Snippet instance with the provided parameters.
 
@@ -97,12 +104,40 @@ class Snippet(SQLModel, table=True):
             language=language,
             description=description,
             tags=tags,
+            favorite=favorite,
         )
 
 
-if __name__ == "__main__":  # pragma: no cover
-    # Create the database and tablesprint("Database and tables created successfully.")
+class SnippetBase(SQLModel):
+    """Model for creating a new Snippet instance.
+
+    This model is used to validate the input data when creating a new snippet.
+    It inherits from the SQLModel and can be extended with additional validation if needed.
+    """
+
+    title: str
+    code: str
+    description: Optional[str] = None
+    language: Language = Language.PYTHON
+    tags: Optional[str] = None
+    favorite: bool = False
+
+
+class SnippetCreate(SnippetBase):
+    """Model for creating a new Snippet instance.
+
+    This model is used to validate the input data when creating a new snippet.
+    It inherits from SnippetBase and can be extended with additional validation if needed.
+    """
+
+
+def create_db_and_tables() -> None:
+    """Create the database and tables if they do not exist."""
     database_url = config("DATABASE_URL", default="sqlite:///snippets.db")
     engine = create_engine(database_url, echo=True)  # type: ignore
     SQLModel.metadata.create_all(engine)
+
+
+if __name__ == "__main__":  # pragma: no cover
+    create_db_and_tables()
     print("Database and tables created successfully.")

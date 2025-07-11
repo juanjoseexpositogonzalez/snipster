@@ -8,6 +8,7 @@ authors = [
 ]
 requires-python = ">=3.13"
 dependencies = [
+    "fastapi[all]>=0.116.0",
     "httpx>=0.28.1",
     "psycopg2>=2.9.10",
     "pytest-mock>=3.14.1",

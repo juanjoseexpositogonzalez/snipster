@@ -151,11 +151,12 @@ def tag(
     snippet_id: int = typer.Argument(..., help=""),
     tag: str = typer.Argument(..., help="Tag to add or remove"),
     remove: bool = typer.Option(False, "--remove", "-r", help="Remove tags"),
+    sort: bool = typer.Option(False, "--sort", "-s", help="Sort tags alphabetically"),
 ):
     repo: DBSnippetRepo = ctx.obj
     try:
         # repo.get(snippet_id)
-        repo.tag(snippet_id, tag, remove=remove)
+        repo.tag(snippet_id, tag, remove=remove, sort=sort)
         action = "removed from" if remove else "added to"
         console.print(
             f"[bold green]Tag '{tag}' {action} snippet {snippet_id}[/bold green]."
