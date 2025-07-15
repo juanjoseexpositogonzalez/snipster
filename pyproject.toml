@@ -15,7 +15,6 @@ dependencies = [
     "pytest-mock>=3.14.1",
     "python-decouple>=3.8",
     "rich>=14.0.0",
-    "ruff>=0.11.13",
     "sqlmodel>=0.0.24",
     "streamlit>=1.46.1",
     "typer>=0.16.0",
@@ -30,6 +29,7 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
+    "ruff>=0.11.13",
     "poethepoet>=0.35.0",
     "psycopg2-binary>=2.9.10",
     "pytest-cov>=6.2.1",
@@ -46,7 +46,7 @@ type-check   = "ruff typecheck src"
 run          = "python -m snipster"  # or "uv run src/snipster/cli.py"
 tc           = "ty check ."
 api          = "uv run fastapi dev src/snipster/api.py"
-gui          = "streamlit run src/snipster/streamlit_app.py"
+gui          = "streamlit run src/snipster/streamlit_app.py --server.fileWatcherType watchdog --server.runOnSave true"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

@@ -209,20 +209,21 @@ elif st.session_state.current_menu == "Add Snippet":
                     )
 
                 # Debug: Show what we're sending
-                st.write("Debug - Sending to API:", params)
+                # st.write("Debug - Sending to API:", params)
 
                 try:
                     r = httpx.post(f"{API_URL}snippets/", json=params)  # type: ignore
 
                     # Debug: Show response details
-                    st.write(f"Debug - Response status: {r.status_code}")
-                    st.write(f"Debug - Response text: {r.text}")
+                    # st.write(f"Debug - Response status: {r.status_code}")
+                    # st.write(f"Debug - Response text: {r.text}")
 
                     if r.is_success:
                         st.success("Snippet added successfully!")
                         response_data = r.json()
-                        st.write("Debug - Response data:", response_data)
-                        st.session_state.view_id = response_data["id"]
+                        # st.write("Debug - Response data:", response_data)
+
+                        st.session_state.view_id = response_data.get("id", None)
                         st.session_state.current_menu = "List Snippets"
                         st.rerun()
                     else:
