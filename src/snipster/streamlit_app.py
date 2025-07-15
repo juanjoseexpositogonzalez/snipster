@@ -132,7 +132,9 @@ if st.session_state.view_id is not None:
             }
             try:
                 gist_url = create_gist(
-                    **params,
+                    title=params["title"],
+                    code=params["code"],
+                    public=params["public"],
                 )
                 st.success(f"Gist created successfully: {gist_url}")
             except HTTPException as e:

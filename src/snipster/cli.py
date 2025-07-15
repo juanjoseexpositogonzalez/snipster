@@ -319,6 +319,5 @@ def create_gist(code: str, title: str, public: bool = False) -> str:
             )
     except httpx.HTTPError as e:
         console.print(f"[bold red]HTTPError: {e}[/bold red]")
-        raise typer.Exit(code=1)
 
     return response.json()["html_url"]  # Return the URL of the created Gist

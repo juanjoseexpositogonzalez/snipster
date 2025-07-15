@@ -1194,7 +1194,6 @@ dependencies = [
     { name = "pytest-mock" },
     { name = "python-decouple" },
     { name = "rich" },
-    { name = "ruff" },
     { name = "sqlmodel" },
     { name = "streamlit" },
     { name = "typer" },
@@ -1205,6 +1204,7 @@ dev = [
     { name = "poethepoet" },
     { name = "psycopg2-binary" },
     { name = "pytest-cov" },
+    { name = "ruff" },
     { name = "ty" },
 ]
 
@@ -1217,7 +1217,6 @@ requires-dist = [
     { name = "pytest-mock", specifier = ">=3.14.1" },
     { name = "python-decouple", specifier = ">=3.8" },
     { name = "rich", specifier = ">=14.0.0" },
-    { name = "ruff", specifier = ">=0.11.13" },
     { name = "sqlmodel", specifier = ">=0.0.24" },
     { name = "streamlit", specifier = ">=1.46.1" },
     { name = "typer", specifier = ">=0.16.0" },
@@ -1228,6 +1227,7 @@ dev = [
     { name = "poethepoet", specifier = ">=0.35.0" },
     { name = "psycopg2-binary", specifier = ">=2.9.10" },
     { name = "pytest-cov", specifier = ">=6.2.1" },
+    { name = "ruff", specifier = ">=0.11.13" },
     { name = "ty", specifier = ">=0.0.1a11" },
 ]
 
