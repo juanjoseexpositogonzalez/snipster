@@ -146,6 +146,26 @@ def test_search_snippets(client: TestClient, inmemory_repo: InMemorySnippetRepo)
     assert data[0]["title"] == "Test Snippet"
 
 
+def test_run_snippet(client: TestClient, inmemory_repo: InMemorySnippetRepo):  # type: ignore
+    """Test running a snippet."""
+    # First, create a snippet
+    payload = {
+        "title": "Test Snippet",
+        "code": "print('Hello, World!')",
+        "language": Language.PYTHON.value,  # type: ignore
+        "description": "A simple test snippet",
+        "tags": "test,example",
+    }
+    response = client.post("/snippets/", json=payload)
+    snippet_id = response.json()["id"]
+
+    # Now run the snippet
+    response = client.post(f"/snippets/{snippet_id}/run")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["output"] == "Hello, World!\n"  # type: ignore
+
+
 def test_404_codes(client: TestClient):  # type: ignore
     """Test 404 responses for non-existent snippets."""
     response = client.get("/snippets")

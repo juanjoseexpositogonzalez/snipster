@@ -3,6 +3,7 @@ from typing import Any, Dict, Final
 
 import httpx
 import typer
+from carbon.carbon import create_code_image
 from decouple import config
 from rich.console import Console, Group
 from rich.panel import Panel
@@ -170,7 +171,7 @@ def run_code(
     ctx: typer.Context,
     snippet_id: int = typer.Argument(..., help="Snippet ID to run"),
     version: str = typer.Option(
-        "latest", "--version", "-v", help="Language version to use"
+        "3.10.0", "--version", "-v", help="Language version to use"
     ),
 ) -> Dict[str, Any]:
     """
@@ -230,3 +231,28 @@ async def _run_code_async(
         output = result.get("run", {}).get("output", "")
 
         return {"stdout": stdout, "stderr": stderr, "output": output}
+
+
+@app.command()
+def image(
+    ctx: typer.Context,
+    snippet_id: int = typer.Argument(..., help="Snippet ID to get image"),
+):
+    repo: DBSnippetRepo = ctx.obj
+
+    snippet = repo.get(snippet_id)
+    if not snippet:
+        console.print(f"[bold red]Snippet with id {snippet_id} not found[/bold red].")
+        return
+    create_code_image(
+        code=snippet.code,
+        language=snippet.language.value,
+        theme="seti",
+        line_numbers="false",
+        background="#ABB8C3",
+        wt="sharp",
+        destination=".",  # type: ignore[assignment]
+    )
+    console.print(
+        f"[bold blue]Image for snippet '{snippet.title}' created successfully![/bold blue]"
+    )

@@ -258,3 +258,18 @@ def test_run_code_displays_stderr(mock_client_class: Any, add_snippet: Any):
     assert result.exit_code == 0
     assert "STDERR:" in result.output
     assert "Error: variable not defined" in result.output
+
+
+def test_create_image(add_snippet: Any):
+    """Test creating an image from a snippet"""
+    assert add_snippet.exit_code == 0
+
+    # Mockear la función create_code_image
+    with patch("snipster.cli.create_code_image") as mock_create_image:
+        mock_create_image.return_value = "path/to/image.png"
+
+        result = runner.invoke(app, ["image", "1"])
+
+        assert result.exit_code == 0
+        assert "Image for snippet 'Test Snippet' created successfully!" in result.output
+        mock_create_image.assert_called_once()  # Verificar que se llamó a la función
