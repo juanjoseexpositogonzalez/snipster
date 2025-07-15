@@ -1,10 +1,12 @@
 """Streamlit application for Snipster, a code snippet management tool."""
 
-from typing import List
+from typing import Any, Dict, List
 
 import httpx
 import streamlit as st
+from fastapi import HTTPException
 
+from snipster.cli import create_gist
 from snipster.models import Language
 
 API_URL = "http://localhost:8000/"
@@ -88,12 +90,12 @@ if st.session_state.view_id is not None:
         with col2:
             tags = st.text_input("Add tags (comma-separated)", key="tags_input")
             if st.button("Add Tags"):
-                params = [tag.strip() for tag in tags.split(",") if tag.strip()]
+                params = [tag.strip() for tag in tags.split(",") if tag.strip()]  # type: ignore
                 httpx.post(f"{API_URL}snippets/{snippet_id}/tags", params=params)  # type: ignore
                 st.rerun()
         with col3:
             if st.button("Remove Tags (comma-separated)", key="remove_tags"):
-                params = [tag.strip() for tag in tags.split(",") if tag.strip()]
+                params = [tag.strip() for tag in tags.split(",") if tag.strip()]  # type: ignore
                 params.append(("remove", "true"))  # type: ignore
                 httpx.post(
                     f"{API_URL}snippets/{snippet_id}/tags",
@@ -121,6 +123,22 @@ if st.session_state.view_id is not None:
                 st.error("Failed to delete snippet.")
             st.session_state.view_id = None
             st.rerun()
+
+        if st.button(" Gist Snippet", key="gist_snippet"):
+            params = {
+                "title": snippet["title"],
+                "code": snippet["code"],
+                "public": True,  # Default to public for simplicity
+            }
+            try:
+                gist_url = create_gist(
+                    **params,
+                )
+                st.success(f"Gist created successfully: {gist_url}")
+            except HTTPException as e:
+                raise HTTPException(status_code=500, detail=str(e)) from e
+            except httpx.RequestError as e:
+                st.error(f"Connection error: {str(e)}")
 
         if st.button("↩ Back to List", key="back_to_list"):
             st.session_state.view_id = None
@@ -167,6 +185,7 @@ elif st.session_state.current_menu == "Add Snippet":
         tags = st.text_input("Tags (comma-separated, optional)")
 
         submit_button = st.form_submit_button("Add")
+        gist_button = st.form_submit_button("Create Gist")
 
         if submit_button:
             # Validate required fields
@@ -218,6 +237,28 @@ elif st.session_state.current_menu == "Add Snippet":
                     st.error(
                         "Make sure the API server is running on http://localhost:8000/"
                     )
+        elif gist_button:
+            # Handle Gist creation
+            if not title.strip() or not code.strip():
+                st.error("Title and code are required to create a Gist.")
+            else:
+                params: Dict[str, Any] = {
+                    "title": title.strip(),
+                    "code": code.strip(),
+                    "public": True,  # Default to public for simplicity
+                }
+                try:
+                    r = httpx.post(
+                        f"{API_URL}snippets/gist/",
+                        json=params,
+                    )  # type: ignore
+                    if r.is_success:
+                        gist_url = r.json().get("url")
+                        st.success(f"Gist created successfully! URL: {gist_url}")
+                    else:
+                        st.error(f"Failed to create Gist. Status: {r.status_code}")
+                except httpx.RequestError as e:
+                    st.error(f"Connection error: {str(e)}")
 
 elif st.session_state.current_menu == "Edit Snippet":
     st.header("✏️ Edit Snippet")

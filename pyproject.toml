@@ -45,6 +45,8 @@ format-check = "ruff check src --fix"
 type-check   = "ruff typecheck src"
 run          = "python -m snipster"  # or "uv run src/snipster/cli.py"
 tc           = "ty check ."
+api          = "uv run fastapi dev src/snipster/api.py"
+gui          = "streamlit run src/snipster/streamlit_app.py"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

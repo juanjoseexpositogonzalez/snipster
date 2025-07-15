@@ -10,6 +10,7 @@ from sqlmodel import Session, SQLModel, create_engine
 from snipster.cli import PISTON_API
 from snipster.exceptions import SnippetNotFoundError
 
+from .cli import create_gist
 from .models import Language, Snippet, SnippetCreate
 from .repo import DBSnippetRepo, SnippetRepository
 
@@ -180,4 +181,26 @@ def create_snippet_image(
         )
         return {"message": f"Image for snippet '{snippet.title}' created successfully!"}
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@app.post("/snippets/{snippet_id}/gist")  # type: ignore
+def create_snippet_gist(
+    repo: Annotated[SnippetRepository, Depends(get_repo)],
+    snippet_id: int,
+    public: bool = Query(False, description="Create a public Gist"),
+):
+    """Create a Gist from a snippet."""
+    snippet = repo.get(snippet_id)
+    if not snippet:
+        raise HTTPException(status_code=404, detail="Snippet not found")
+
+    try:
+        gist_url = create_gist(
+            title=snippet.title,
+            code=snippet.code,
+            public=public,
+        )
+        return {"message": f"Gist created successfully: {gist_url}"}
+    except HTTPException as e:
         raise HTTPException(status_code=500, detail=str(e)) from e

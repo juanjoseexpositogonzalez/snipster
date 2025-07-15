@@ -5,6 +5,7 @@ import httpx
 import typer
 from carbon.carbon import create_code_image
 from decouple import config
+from httpx import HTTPStatusError
 from rich.console import Console, Group
 from rich.panel import Panel
 from rich.syntax import Syntax
@@ -18,6 +19,7 @@ from snipster.repo import DBSnippetRepo
 app = typer.Typer()
 console = Console()
 PISTON_API: Final[str] = "https://emkc.org/api/v2/piston/execute"
+GITHUB_TOKEN: Final[str] = config("GITHUB_TOKEN", default="")  # type: ignore[assignment]
 
 
 @app.callback()
@@ -256,3 +258,67 @@ def image(
     console.print(
         f"[bold blue]Image for snippet '{snippet.title}' created successfully![/bold blue]"
     )
+
+
+@app.command()
+def gist(
+    ctx: typer.Context,
+    snippet_id: int = typer.Argument(..., help="Snippet ID to crate gist for"),
+    public: bool = typer.Option(True, "--public", "-p", help="Create public Gist"),
+):
+    """
+    Create a Gist from a snippet.
+    """
+    repo: DBSnippetRepo = ctx.obj
+    try:
+        # Check if snippet exists
+        snippet = repo.get(snippet_id)
+    except SnippetNotFoundError:
+        console.print(f"[bold red]Snippet with id {snippet_id} not found[/bold red].")
+        return
+
+    # Here you would implement the logic to create a Gist using GitHub API
+    # For now, we will just print a message
+    url = create_gist(snippet.code, snippet.title, public)
+    console.print(
+        f"[bold green]Gist for snippet '{snippet.title}' created successfully!\nSee url: {url}[/bold green]"
+    )
+
+
+def create_gist(code: str, title: str, public: bool = False) -> str:
+    """
+    Create a Gist using GitHub API.
+    """
+    payload: Dict[str, Any] = {
+        "description": title,
+        "public": public,
+        "files": {f"{title.replace(' ', '_')}.py": {"content": code}},
+    }
+
+    headers = {
+        "Authorization": f"Bearer {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github+json",
+    }
+
+    try:
+        response = httpx.post(
+            "https://api.github.com/gists", json=payload, headers=headers
+        )
+        response.raise_for_status()
+        if response.status_code != 201:
+            raise HTTPStatusError(
+                request=response.request,
+                response=response,
+                message="Failed to create Gist",
+            )
+        if "html_url" not in response.json():
+            raise HTTPStatusError(
+                request=response.request,
+                response=response,
+                message="Unexpected response format from GitHub API",
+            )
+    except httpx.HTTPError as e:
+        console.print(f"[bold red]HTTPError: {e}[/bold red]")
+        raise typer.Exit(code=1)
+
+    return response.json()["html_url"]  # Return the URL of the created Gist
