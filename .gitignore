@@ -194,5 +194,3 @@ cython_debug/
 .cursorindexingignore
 **/.vscode/
 **/.pylintrc
-snipster.db
-*.db

@@ -24,7 +24,6 @@ Thumbs.db
 htmlcov/
 .tox/
 *.log
-*.db
 tests/
 
 # Librerías locales si haces pip install -e .
