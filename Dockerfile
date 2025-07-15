@@ -23,7 +23,7 @@ ENV UV_VIRTUALENV_MANAGED=off
 WORKDIR /app
 
 # Copy project files
-COPY pyproject.toml uv.lock README.md ./
+COPY pyproject.toml uv.lock README.md snipster.db ./
 COPY src ./src
 
 # Install dependencies (locked to `pyproject.toml`)
@@ -53,6 +53,7 @@ WORKDIR /app
 # Copy only source code and virtual environment
 COPY --chown=appuser:appuser src ./src
 COPY --from=builder --chown=appuser:appuser /app/.venv .venv
+COPY --from=builder --chown=appuser:appuser /app/snipster.db snipster.db
 # Copy uv executable from builder stage
 # COPY --from=builder /root/.local/bin/uv /usr/local/bin/uv
 COPY --from=builder --chown=appuser:appuser /root/.local/bin/uv /usr/local/bin/uv

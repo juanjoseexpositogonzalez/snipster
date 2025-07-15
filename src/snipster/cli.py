@@ -5,7 +5,6 @@ import httpx
 import typer
 from carbon.carbon import create_code_image
 from decouple import config
-from httpx import HTTPStatusError
 from rich.console import Console, Group
 from rich.panel import Panel
 from rich.syntax import Syntax
@@ -286,38 +285,76 @@ def gist(
 
 
 def create_gist(code: str, title: str, public: bool = False) -> str:
+    """Create a GitHub Gist and return its URL.
+
+    Args:
+        title: The title/filename for the gist
+        code: The code content
+        public: Whether the gist should be public (default: False for private)
+
+    Returns:
+        str: The URL of the created gist
+
+    Raises:
+        Exception: If gist creation fails
     """
-    Create a Gist using GitHub API.
-    """
-    payload: Dict[str, Any] = {
-        "description": title,
+    # Prepare the gist data
+    gist_data: Dict[str, Any] = {
+        "description": f"Code snippet: {title}",
         "public": public,
-        "files": {f"{title.replace(' ', '_')}.py": {"content": code}},
+        "files": {
+            f"{title}.py": {  # You might want to determine extension based on language
+                "content": code
+            }
+        },
     }
 
     headers = {
-        "Authorization": f"Bearer {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github+json",
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json",
+        "Content-Type": "application/json",
     }
 
     try:
+        # Make the request to GitHub API
         response = httpx.post(
-            "https://api.github.com/gists", json=payload, headers=headers
+            "https://api.github.com/gists", json=gist_data, headers=headers, timeout=30
         )
-        response.raise_for_status()
-        if response.status_code != 201:
-            raise HTTPStatusError(
-                request=response.request,
-                response=response,
-                message="Failed to create Gist",
-            )
-        if "html_url" not in response.json():
-            raise HTTPStatusError(
-                request=response.request,
-                response=response,
-                message="Unexpected response format from GitHub API",
-            )
-    except httpx.HTTPError as e:
-        console.print(f"[bold red]HTTPError: {e}[/bold red]")
 
-    return response.json()["html_url"]  # Return the URL of the created Gist
+        # Check if request was successful
+        if response.status_code == 201:
+            gist_info = response.json()
+            return gist_info["html_url"]
+
+        # Handle different error cases
+        elif response.status_code == 401:
+            raise httpx.HTTPStatusError(
+                response=response,
+                request=response.request,
+                message="GitHub token is invalid or expired",
+            )
+        elif response.status_code == 403:
+            raise httpx.HTTPStatusError(
+                response=response,
+                request=response.request,
+                message="GitHub API rate limit exceeded or forbidden",
+            )
+        elif response.status_code == 422:
+            error_detail = response.json().get("message", "Invalid request data")
+            raise httpx.HTTPStatusError(
+                response=response,
+                request=response.request,
+                message=f"Invalid gist data: {error_detail}",
+            )
+        else:
+            error_detail = response.json().get("message", "Unknown error")
+            raise httpx.HTTPError(
+                f"GitHub API error ({response.status_code}): {error_detail}"
+            )
+
+    except httpx.HTTPStatusError as e:
+        raise httpx.HTTPError(f"Network error when creating gist: {str(e)}") from e
+    except KeyError as e:
+        raise httpx.HTTPError(
+            f"Unexpected response format from GitHub API: missing {str(e)}"
+        ) from e

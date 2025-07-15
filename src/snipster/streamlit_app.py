@@ -138,9 +138,11 @@ if st.session_state.view_id is not None:
                 )
                 st.success(f"Gist created successfully: {gist_url}")
             except HTTPException as e:
+                st.error(f"Failed to create Gist: {str(e)}")
                 raise HTTPException(status_code=500, detail=str(e)) from e
             except httpx.RequestError as e:
                 st.error(f"Connection error: {str(e)}")
+                st.write("Debug info", str(e))
 
         if st.button("↩ Back to List", key="back_to_list"):
             st.session_state.view_id = None
