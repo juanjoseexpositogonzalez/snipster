@@ -4,12 +4,13 @@ from typing import Any, Dict, List
 
 import httpx
 import streamlit as st
+from decouple import config
 from fastapi import HTTPException
 
 from snipster.cli import create_gist
 from snipster.models import Language
 
-API_URL = "http://localhost:8000/"
+API_URL = config("API_URL", default="http://localhost:8000/")
 
 st.set_page_config(
     page_title="Snipster",
