@@ -1,7 +1,7 @@
 ## ----------------------------------------- Builder Stage ----------------------------------------- ##
 FROM python:3.13 AS builder
 
-# Install system dependencies and upgrade packages to fix vulnerabilities
+# Install system dependencies (no PostgreSQL needed)
 RUN apt-get update && apt-get install --no-install-recommends -y \
     build-essential \
     curl \
@@ -25,16 +25,16 @@ WORKDIR /app
 COPY pyproject.toml uv.lock README.md ./
 COPY src ./src
 
-# Copy database if exists
+# Copy database if exists (SQLite is just a file)
 COPY snipster.db* ./
 
-# Install dependencies (locked to `pyproject.toml`)
+# Install dependencies
 RUN uv sync --no-dev
 
 ## ----------------------------------------- Production Stage ----------------------------------------- ##
-FROM python:3.13 AS production
+FROM python:3.13-slim AS production
 
-# Install only runtime dependencies
+# Install only minimal runtime dependencies
 RUN apt-get update && apt-get install --no-install-recommends -y \
     ca-certificates \
     && apt-get clean \
@@ -80,7 +80,7 @@ exit $?\n\
 # Switch to non-root user
 USER appuser
 
-# Set up environment variables for production
+# Set up environment variables
 ENV PATH="/app/.venv/bin:/usr/local/bin:$PATH"
 ENV PYTHONPATH="/app/src"
 
